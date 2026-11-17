@@ -1,0 +1,25 @@
+// Shared configuration. See settings.gradle for what each module is.
+subprojects {
+    apply plugin: 'java-library'
+
+    group = mod_group_id
+    version = "${mod_version}+mc${minecraft_version}"
+
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(21)
+        withSourcesJar()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 21
+    }
+
+    tasks.withType(ProcessResources).configureEach {
+        def props = [mod_version: mod_version, minecraft_version: minecraft_version, neo_version: neo_version]
+        inputs.properties props
+        filesMatching('META-INF/neoforge.mods.toml') {
+            expand props
+        }
+    }
+}

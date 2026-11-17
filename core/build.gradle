@@ -1,0 +1,51 @@
+plugins {
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+base {
+    archivesName = 'kraz'
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        kraz {
+            sourceSet(sourceSets.main)
+        }
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = rootProject.file('run')
+        }
+    }
+}
+
+// me.methodial:kraz, on GitHub Packages (team-froglight/kraz). The Publish workflow runs `:core:publish`;
+// `gradlew :core:publishToMavenLocal` serves sibling checkouts (Apothecary) without credentials.
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId = 'kraz'
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/team-froglight/kraz'
+            credentials {
+                username = providers.gradleProperty('gpr.user').orElse(providers.environmentVariable('GITHUB_ACTOR')).getOrElse('')
+                password = providers.gradleProperty('gpr.key').orElse(providers.environmentVariable('GITHUB_TOKEN')).getOrElse('')
+            }
+        }
+    }
+}

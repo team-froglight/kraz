@@ -1,0 +1,24 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "kraz_editor"
+version = "${mod_version}"
+displayName = "Kraz Editor"
+authors = "methodial"
+description = "Scene editor and viewer for Kraz: build, pose and animate scenes in game. Open it with /kraz edit."
+
+[[dependencies.kraz_editor]]
+modId = "kraz"
+type = "required"
+versionRange = "*"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies.kraz_editor]]
+modId = "apothecary"
+type = "required"
+versionRange = "*"
+ordering = "AFTER"
+side = "CLIENT"

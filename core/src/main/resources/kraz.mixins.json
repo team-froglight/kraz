@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.methodial.kraz.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "LightTextureMixin",
+    "LivingEntityRendererMixin",
+    "MinecraftMixin",
+    "ModelPartAccessor",
+    "WalkAnimationStateAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

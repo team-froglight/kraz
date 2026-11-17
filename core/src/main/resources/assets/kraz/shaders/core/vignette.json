@@ -1,0 +1,10 @@
+{
+    "vertex": "kraz:post",
+    "fragment": "kraz:vignette",
+    "samplers": [
+        { "name": "Sampler0" }
+    ],
+    "uniforms": [
+        { "name": "Strength", "type": "float", "count": 1, "values": [ 0.4 ] }
+    ]
+}

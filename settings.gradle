@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        maven { url = 'https://maven.neoforged.net/releases' }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'kraz'
+
+// core:   the rendering library (mod id "kraz"). No UI dependencies; this is what other mods depend on.
+// editor: the scene editor and viewer (mod id "kraz_editor"), built with Apothecary UI, plus the self test.
+include 'core', 'editor'

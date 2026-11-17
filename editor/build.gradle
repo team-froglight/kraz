@@ -1,0 +1,112 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+def compatMods = project.hasProperty('with') ? project.property('with').toString().split(',').collect { it.trim() }.findAll { it } : []
+def compatName = compatMods.join('-')
+
+base {
+    archivesName = 'kraz-editor'
+}
+
+sourceSets {
+    // The automated self test is its own mod. It is only loaded by the clientSelfTest run and never shipped.
+    selftest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    selftestImplementation.extendsFrom implementation
+    selftestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+// Apothecary UI: a sibling checkout's publishToMavenLocal wins; otherwise GitHub Packages (team-froglight/apothecary),
+// which needs a token with read:packages (gpr.user / gpr.key in ~/.gradle/gradle.properties, or GITHUB_ACTOR / GITHUB_TOKEN).
+repositories {
+    exclusiveContent {
+        forRepositories(repositories.mavenLocal(), repositories.maven {
+            name = 'Apothecary'
+            url = 'https://maven.pkg.github.com/team-froglight/apothecary'
+            credentials {
+                username = providers.gradleProperty('gpr.user').orElse(providers.environmentVariable('GITHUB_ACTOR')).getOrElse('')
+                password = providers.gradleProperty('gpr.key').orElse(providers.environmentVariable('GITHUB_TOKEN')).getOrElse('')
+            }
+        })
+        filter { includeGroup 'me.methodial.apothecary' }
+    }
+}
+
+evaluationDependsOn(':core')
+def coreMain = project(':core').sourceSets.main
+
+neoForge {
+    version = project.neo_version
+    addModdingDependenciesTo(sourceSets.selftest)
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        kraz {
+            sourceSet(coreMain)
+        }
+        kraz_editor {
+            sourceSet(sourceSets.main)
+        }
+        kraz_selftest {
+            sourceSet(sourceSets.selftest)
+        }
+    }
+
+    runs {
+        client {
+            client()
+            loadedMods = [mods.kraz, mods.kraz_editor]
+            gameDirectory = rootProject.file('run')
+        }
+        // Starts the game, exercises every Kraz feature, writes build/selftest/report.txt and images, then quits.
+        // Add -Pwith=sodium (or create, or sodium,create) to run the same checks with those mods installed.
+        clientSelfTest {
+            client()
+            sourceSet = sourceSets.selftest
+            loadedMods = [mods.kraz, mods.kraz_editor, mods.kraz_selftest]
+            systemProperty 'kraz.selftest', rootProject.file(compatMods ? "build/selftest-${compatName}" : 'build/selftest').absolutePath
+            gameDirectory = rootProject.file(compatMods ? "run-${compatName}" : 'run')
+        }
+        configureEach {
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+}
+
+dependencies {
+    implementation project(':core')
+    // Apothecary UI, for the editor and viewer. Publish a sibling checkout with `gradlew publishToMavenLocal`.
+    implementation "me.methodial.apothecary:apothecary-neoforge:${apothecary_version}"
+}
+
+// Compatibility runs: mods are copied into the mods folder of a separate game directory, exactly as a player
+// would install them; nothing here affects the published jars or the normal dev client.
+if (compatMods) {
+    repositories {
+        exclusiveContent {
+            forRepository { maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven' } }
+            filter { includeGroup 'maven.modrinth' }
+        }
+    }
+    configurations {
+        compatMod { transitive = false }
+    }
+    dependencies {
+        compatMods.each { compatMod "maven.modrinth:${it}:${project.property(it + '_version')}" }
+    }
+    def installCompatMods = tasks.register('installCompatMods', Sync) {
+        from configurations.compatMod
+        into rootProject.file("run-${compatName}/mods")
+    }
+    tasks.named('runClientSelfTest') { dependsOn installCompatMods }
+}

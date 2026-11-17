@@ -1,0 +1,19 @@
+{
+  "kraz.narration.scene": "Scene view",
+  "kraz.viewer.title": "Kraz Scene Viewer",
+  "kraz.editor.title": "Kraz Scene Editor",
+  "kraz.viewer.play": "Play",
+  "kraz.viewer.pause": "Pause",
+  "kraz.viewer.projection": "Projection",
+  "kraz.viewer.exporting": "Exporting…",
+  "kraz.viewer.exported": "Saved %s to kraz/exports",
+  "kraz.viewer.export_failed": "Export failed: %s",
+  "kraz.command.list": "Saved scenes: %s",
+  "kraz.command.list.empty": "No saved scenes yet. Use /kraz capture to make one.",
+  "kraz.command.capture.done": "Captured scene '%s'. Open it with /kraz view %s",
+  "kraz.command.capture.too_large": "That box is %s blocks; the limit is %s",
+  "kraz.command.not_found": "No saved scene named '%s'",
+  "kraz.command.project.done": "Projecting %s at %s, scale %s. /kraz project clear removes it",
+  "kraz.command.project.cleared": "Removed %s projection(s)",
+  "kraz.command.io_error": "Could not read or write the scene: %s"
+}

@@ -1,0 +1,16 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "kraz_selftest"
+version = "1.0.0"
+displayName = "Kraz Self Test"
+description = "Development-only automated test driver for Kraz. Never shipped."
+
+[[dependencies.kraz_selftest]]
+modId = "kraz"
+type = "required"
+versionRange = "*"
+ordering = "AFTER"
+side = "CLIENT"

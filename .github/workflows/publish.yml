@@ -1,0 +1,82 @@
+name: Publish
+
+# Manual release: GitHub Packages rejects re-uploads of an existing version, so publishing is explicit rather than
+# per-push. Bump mod_version in gradle.properties first, then run this workflow.
+#
+# Two jobs, because of the dependency chain kraz <- apothecary <- kraz-editor:
+#   library  publishes me.methodial:kraz to GitHub Packages (Apothecary builds against it);
+#   release  builds the editor against Apothecary and creates the GitHub release with both mods' jars.
+# When a release also needs a new Apothecary, publish Apothecary after the library job, then re-run the release job.
+on:
+  workflow_dispatch:
+
+# One release at a time; a second run waits rather than racing the first to the same version.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  library:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Build and publish the library to GitHub Packages
+        run: |
+          chmod +x gradlew
+          ./gradlew :core:build :core:publish --stacktrace
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    needs: library
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Build the library and the editor
+        run: |
+          chmod +x gradlew
+          ./gradlew build --stacktrace
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
+      - name: Create the GitHub release
+        run: |
+          version=$(grep '^mod_version=' gradle.properties | cut -d= -f2)
+          mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)
+          apothecary=$(grep '^apothecary_version=' gradle.properties | cut -d= -f2)
+          tag="v${version}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag already exists; uploading the jars to it again."
+            gh release upload "$tag" core/build/libs/*.jar editor/build/libs/*.jar --clobber
+            exit 0
+          fi
+          cat > notes.md <<NOTES
+          Kraz ${version} for Minecraft ${mc} (NeoForge).
+
+          - **kraz-${version}+mc${mc}.jar**: the library (scenes, rendering, animation, the shaded pipeline, export, world projection, \`/kraz capture|export|list|project\`).
+          - **kraz-editor-${version}+mc${mc}.jar**: the scene editor and viewer (\`/kraz edit|view|demo\`). Needs [Apothecary UI](https://github.com/team-froglight/apothecary) ${apothecary}, which carries Kraz inside it.
+
+          Developers: \`me.methodial:kraz:${version}+mc${mc}\` on GitHub Packages (\`https://maven.pkg.github.com/team-froglight/kraz\`).
+          NOTES
+          sed -i 's/^          //' notes.md
+          gh release create "$tag" core/build/libs/*.jar editor/build/libs/*.jar \
+            --title "Kraz ${version}" --notes-file notes.md --target "$GITHUB_SHA"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
